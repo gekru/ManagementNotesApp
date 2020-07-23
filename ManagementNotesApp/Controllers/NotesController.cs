@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using ManagementNotesApp.Models;
 using Microsoft.AspNetCore.Mvc;
-
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace ManagementNotesApp.Controllers
 {
@@ -12,36 +11,99 @@ namespace ManagementNotesApp.Controllers
     [ApiController]
     public class NotesController : ControllerBase
     {
+        /// <summary>
+        /// App Mock Data Base
+        /// </summary>
+        static readonly List<Note> _notes = new List<Note>
+        {
+            new Note { Id = 1, TextNote = "First note!" },
+            new Note { Id = 2, TextNote = "Second note!" },
+        };
+
         // GET: api/notes
         [HttpGet]
-        public IEnumerable<string> Get()
+        public IActionResult Get()
         {
-            return new string[] { "value1", "value2" };
+            return Ok(_notes);
         }
 
         // GET api/notes/5
         [HttpGet("{id}")]
-        public string Get(int id)
+        public IActionResult Get(int id)
         {
-            return "value";
+            var note = GetCurrentNote(id);
+
+            if (note == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(note);
         }
 
         // POST api/notes
         [HttpPost]
-        public void Post([FromBody] string value)
+        public IActionResult Post(Note note)
         {
+            // Apply unique Id to new note
+            note.Id = UniqueId();
+
+            // andd note to db
+            _notes.Add(note);
+
+            return Ok(note);
         }
 
         // PUT api/notes/5
         [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
+        public IActionResult Put(Note note)
         {
+            // Associate current note with model note
+            var noteDb = _notes.Where(x => x.Id == note.Id).FirstOrDefault();
+
+            if (noteDb == null)
+            {
+                return NotFound();
+            }
+            else
+            {
+                // Update text of the current note
+                noteDb.TextNote = note.TextNote;
+            }
+
+            return Ok(note);
         }
 
         // DELETE api/notes/5
         [HttpDelete("{id}")]
-        public void Delete(int id)
+        public IActionResult Delete(int id)
         {
+            var currentNote = GetCurrentNote(id);
+
+            if (currentNote == null)
+            {
+                return NotFound();
+            }
+
+            _notes.Remove(currentNote);
+
+            return Ok(currentNote);
+        }
+
+        /// <summary>
+        /// Apply Unique Id to all next notes
+        /// </summary>
+        /// <returns>Unique Id</returns>
+        int UniqueId() => _notes.Count != 0 ? (_notes.Select(x => x.Id).Max() + 1) : 1;
+
+        /// <summary>
+        /// Find Note that match current Id 
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns>Return mached Note</returns>
+        Note GetCurrentNote(int id)
+        {
+            return _notes.Where(x => x.Id == id).FirstOrDefault();
         }
     }
 }
